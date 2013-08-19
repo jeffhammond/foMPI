@@ -1,0 +1,314 @@
+foMPI implements the one-sided chapter of MPI-3.0 standard. It offers a
+C and a Fortran interface.
+
+Building
+========
+
+Compiler
+--------
+Currently the implementation uses inline assembly for intra-node atomics
+and SSE for a fast intra-node memory copy, which isn't supported by the
+Cray compiler. We used gcc, but other compiler might work as well.
+
+The Fortran interface can be accessed in the Fortran 77 way (include
+'fompif.h') or the Fortran 90 way (use fompi). Since the structure of a
+modul file depends on the compiler and you wish to build foMPI with a
+different compiler than your application, please use the following
+scheme:
+1) load the compiler with whom you intend to compile foMPI
+2) make fompi.ar
+3) load the compiler with whom you intend to compile your application
+4) rm -f fompi_fortran.o fompi.{compiler-specific file extension for
+   Fortran module files, .mod for gcc}
+5) make fompi.ar
+At the moment the name mangling of the Fortran wrapper is hard-coded
+(single underscore). If you need to change this for your compiler,
+please have a look at line 6 in fompi_fortran.c .
+
+Dependencies
+------------
+The foMPI tar archive comes with two additional libaries: MPITypes and
+libtopodisc, which are included. Just type "make" and those libraries and
+the foMPI object files will be built, and packed together in the
+ar-archive name fompi.ar. Also a little test program will be built.
+If you wish to built the libraries with a different compiler, please use
+"make mpitypes" or "make libtopodisc".  
+
+Libtopodisc uses autoconf. We got some problems with pre-installed
+versions, so we also provide a version (2.69) with which we were able to
+built libtopodisc.
+
+foMPI also needs the m4 macro processor.
+
+* Autoconf can be obtained from http://www.gnu.org/software/autoconf/ .
+* m4 is available from http://www.gnu.org/software/m4/ .
+* MPITypes: For more information see the homepage 
+  (http://www.mcs.anl.gov/mpitypes/) or their paper from the EuroMPI
+  2009 conference (R. Ross, "MPITypes: Processing MPI Datatypes Outside
+  MPI").
+* Libtopodisc was provided by William Gropp
+  (http://www.cs.illinois.edu/~wgropp/ ).
+
+Includes/Linking
+----------------
+Additional includes to build your application with foMPI are:
+-I{PATH to foMPI}
+-I{PATH to foMPI}/mpitypes/install/include
+-I{PATH to foMPI}/libtopodisc (if compiled with XPMEM support)
+
+Additional parameter for linking your application with foMPI are:
+{PATH to foMPI}/fompi.ar 
+-L{PATH to alpha dist}/mpitypes/install/lib -lmpitypes
+-ldmapp
+-L{PATH to foMPI}/libtopodisc/.libs -ltopodisc (if compiled with XPMEM
+support)
+
+Build parameter
+---------------
+The building parameter can be found at the top section of the Makefile.
+You can choose your appropriate compiler (CC), flags (CCFLAGS) and
+additional foMPI build parameter. At the moment foMPI supports the
+following parameter:
+* -DXPMEM: enables XPMEM support for intra-node communication
+* -DNDEBUG: disables additional error checking
+
+If you experience problems with foMPI please try to enable the
+additional error checking or try removing the XPMEM support.
+
+
+Using foMPI
+===========
+
+All MPI one-sided functions are prefixed with foMPI instead of MPI.
+Additional all constants like foMPI_LOCK_{SHARED,EXLCUSIVE}, the error
+codes, asserts (though not supported at the moment), flavor, memory
+model and MPI ops for the accumulate-derived communication functions
+need to be prefixed with foMPI. Below you find a complete list of
+all implemented constants.
+
+The datatypes MPI_Win and MPI_Request (if used with foMPI RMA functions
+that take requests) need to be renamed to foMPI_Win or foMPI_Request.
+foMPI_Requests are not compatible with MPI_Requests, and can only be
+used with foMPI wait and test functions.
+
+Some functions needed to be overloaded to have foMPI work properly
+(MPI_Init, MPI_Finalize, MPI_Type_free). The wait and test functions for
+foMPI requests can't be mixed with normal MPI requests. For a full list
+of overloaded functions, please check the list below.
+
+Apart from prefixing elements of the MPI one-sided scope the function
+interfaces are declared as in the standard. See fompi.h for the full
+function prototypes.
+
+Below you can find a complete list of implemented and not implemented
+functions of the one-sided chapter.
+
+foMPI implements the unified memory model.
+
+MPI Datatypes
+-------------
+
+foMPI supports all datatypes that are supported by MPITypes for
+foMPI_Put/foMPI_Get. The following datatypes are in the fast path for
+these two communication functions:
+* MPI_CHAR
+* MPI_UINT64_T
+* MPI_DOUBLE
+* MPI_INT
+
+All MPI datatypes are supported for the accumulate-based communication
+functions except:
+* handles from MPI_TYPE_CREATE_F90_INTEGER
+* MPI_INTEGER16
+* handles from MPI_TYPE_CREATE_F90_REAL
+* MPI_REAL2
+* MPI_CXX_BOOL
+* handles from MPI_TYPE_CREATE_F90_COMPLEX
+* MPI_CXX_FLOAT_COMPLEX
+* MPI_CXX_DOUBLE_COMPLEX
+* MPI_CXX_LONG_DOUBLE_COMPLEX
+
+The following combinations of MPI datatype and operation are
+hardware-supported:
+* MPI_DOUBLE/MPI_{BAND/BOR/BXOR}
+* MPI_INT64_T/MPI_{BAND/BOR/BXOR}
+* MPI_INT64_T/MPI_SUM
+
+Fortran
+-------
+All communication functions take a displacement parameter, which is of
+the integer(kind=MPI_ADDRESS_KIND) type. To ensure compatibility with the
+C wrapper code, please use a variable for the displacement parameter
+instead of using a constant (which will be transfered as 4 byte integer
+instead of the bigger integer(kind=MPI_ADDRESS_KIND)).
+
+On our test system, we experienced problems with MPI_Get_address, which
+gives different results for the same location if called from C and
+Fortran. Since our library is implemented in C, this is a problem if you
+intend to use dynamic windows.
+We included a test_address subdirectory, which contains a small test
+program for this problem. If all three locations are the same, you are
+fine. If not, please use foMPI_Get_address instead.
+
+
+Questions
+=========
+
+If you have additional questions, feel free to contact me under the
+following e-mail address: Robert Gerstenberger <gerro@illinois.edu>.
+
+
+Implemented function
+====================
+
+Window creation
+---------------
+* foMPI_Win_create
+* foMPI_Win_allocate
+* foMPI_Win_create_dynamic
+* foMPI_Win_free
+
+* foMPI_Win_attach
+* foMPI_Win_detach
+
+
+Synchronization
+---------------
+* foMPI_Win_fence
+
+* foMPI_Win_post
+* foMPI_Win_start
+* foMPI_Win_complete
+* foMPI_Win_wait
+* foMPI_Win_test
+
+* foMPI_Win_lock
+* foMPI_Win_unlock
+* foMPI_Win_lock_all
+* foMPI_Win_unlock_all
+
+* foMPI_Win_flush
+* foMPI_Win_flush_all
+* foMPI_Win_flush_local
+* foMPI_Win_flush_local_all
+* foMPI_Win_sync
+
+
+Communication
+-------------
+* foMPI_Put
+* foMPI_Get
+* foMPI_Accumulate
+* foMPI_Get_accumulate
+* foMPI_Fetch_and_op
+* foMPI_Compare_and_swap
+
+* foMPI_Rput
+* foMPI_Rget
+* foMPI_Raccumulate
+* foMPI_Rget_accumulate
+
+
+Miscellaneous
+-------------
+* foMPI_Win_get_group
+
+* foMPI_Win_set_name
+* foMPI_Win_get_name
+
+
+Overloaded functions
+====================
+
+Additional to MPI one-sided functions also the following functions need
+to be overloaded:
+
+* foMPI_Type_free
+* foMPI_Init
+* foMPI_Finalize
+
+All of them above will call their MPI equivalent with the passed
+parameters, but do additional work for the foMPI implementation.
+
+* foMPI_Wait
+* foMPI_Test
+
+These functions can only be used together with foMPI_Requests and can't
+handle normal MPI_Request. All other wait oder test routines are not
+implemented at the moment.
+
+
+Not implemented functions
+=========================
+
+* foMPI_Win_allocate_shared
+* foMPI_Win_shared_query
+* foMPI_Win_get_attr
+* foMPI_Win_set_attr
+* foMPI_Win_delete_attr
+* foMPI_Win_set_errhandler
+* foMPI_Win_call_errhandler
+* foMPI_Win_set_info
+* foMPI_Win_get_info
+
+
+Constants
+=========
+
+Create flavor
+-------------
+* foMPI_WIN_FLAVOR_CREATE
+* foMPI_WIN_FLAVOR_ALLOCATE
+* foMPI_WIN_FLAVOR_DYNAMIC
+
+
+Memory model
+------------
+* foMPI_WIN_SEPARATE
+* foMPI_WIN_UNIFIED
+
+
+Asserts
+-------
+* foMPI_MODE_NOCHECK
+* foMPI_MODE_NOSTORE
+* foMPI_MODE_NOPUT
+* foMPI_MODE_NOPRECEDE
+* foMPI_MODE_NOSUCCEED
+Asserts are not used at the moment, but will be accepted by the library.
+
+
+Accumulate operations
+---------------------
+* foMPI_SUM
+* foMPI_PROD
+* foMPI_MAX
+* foMPI_MIN
+* foMPI_LAND
+* foMPI_LOR
+* foMPI_LXOR
+* foMPI_BAND
+* foMPI_BOR
+* foMPI_BXOR
+* foMPI_MAXLOC
+* foMPI_MINLOC
+* foMPI_REPLACE
+* foMPI_NO_OP
+
+
+Lock type
+---------
+* foMPI_LOCK_SHARED
+* foMPI_LOCK_EXCLUSIVE
+
+
+Error codes
+-----------
+* foMPI_ERROR_RMA_NO_SYNC
+* foMPI_ERROR_RMA_DATATYPE_MISMATCH
+* foMPI_ERROR_RMA_NO_LOCK_HOLDING
+* foMPI_ERROR_RMA_SYNC_CONFLICT
+* foMPI_ERROR_RMA_WIN_MEM_NOT_FOUND
+* foMPI_OP_NOT_SUPPORTED
+* foMPI_DATATYPE_NOT_SUPPORTED
+* foMPI_NAME_ABBREVIATED

@@ -1,0 +1,8 @@
+A simple library for topology discovery
+
+Building
+--------
+
+Developing
+----------
+autoreconf -ivf
