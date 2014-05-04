@@ -1,6 +1,10 @@
 foMPI implements the one-sided chapter of MPI-3.0 standard. It offers a
 C and a Fortran interface.
 
+This library was written by Robert Gerstenberger, Maciej Besta and
+Torsten Hoefler and is copyrighted by the Trustees of the University
+of Illinois (c) 2012. See LICENSE for details on the license.
+
 Building
 ========
 
@@ -8,18 +12,19 @@ Compiler
 --------
 Currently the implementation uses inline assembly for intra-node atomics
 and SSE for a fast intra-node memory copy, which isn't supported by the
-Cray compiler. We used gcc, but other compiler might work as well.
+Cray compiler. We used primarily gcc, but also tested the Intel compiler
+and other compiler might work as well.
 
 The Fortran interface can be accessed in the Fortran 77 way (include
 'fompif.h') or the Fortran 90 way (use fompi). Since the structure of a
-modul file depends on the compiler and you wish to build foMPI with a
+module file depends on the compiler and you wish to build foMPI with a
 different compiler than your application, please use the following
 scheme:
 1) load the compiler with whom you intend to compile foMPI
 2) make fompi.ar
 3) load the compiler with whom you intend to compile your application
-4) rm -f fompi_fortran.o fompi.{compiler-specific file extension for
-   Fortran module files, .mod for gcc}
+4) rm -f fompi_fortran.o module_fompi.o fompi.{compiler-specific file 
+   extension for Fortran module files, .mod for gcc}
 5) make fompi.ar
 At the moment the name mangling of the Fortran wrapper is hard-coded
 (single underscore). If you need to change this for your compiler,
@@ -30,17 +35,12 @@ Dependencies
 The foMPI tar archive comes with two additional libaries: MPITypes and
 libtopodisc, which are included. Just type "make" and those libraries and
 the foMPI object files will be built, and packed together in the
-ar-archive name fompi.ar. Also a little test program will be built.
+ar-archive named fompi.ar. Also a little test program will be built.
 If you wish to built the libraries with a different compiler, please use
 "make mpitypes" or "make libtopodisc".  
 
-Libtopodisc uses autoconf. We got some problems with pre-installed
-versions, so we also provide a version (2.69) with which we were able to
-built libtopodisc.
-
 foMPI also needs the m4 macro processor.
 
-* Autoconf can be obtained from http://www.gnu.org/software/autoconf/ .
 * m4 is available from http://www.gnu.org/software/m4/ .
 * MPITypes: For more information see the homepage 
   (http://www.mcs.anl.gov/mpitypes/) or their paper from the EuroMPI
@@ -53,19 +53,17 @@ Includes/Linking
 ----------------
 Additional includes to build your application with foMPI are:
 -I{PATH to foMPI}
--I{PATH to foMPI}/mpitypes/install/include
--I{PATH to foMPI}/libtopodisc (if compiled with XPMEM support)
 
 Additional parameter for linking your application with foMPI are:
 {PATH to foMPI}/fompi.ar 
--L{PATH to alpha dist}/mpitypes/install/lib -lmpitypes
+-L{PATH to foMPI}/mpitypes/install/lib -lmpitypes
 -ldmapp
--L{PATH to foMPI}/libtopodisc/.libs -ltopodisc (if compiled with XPMEM
+-L{PATH to foMPI}/libtopodisc -ltopodisc (if compiled with XPMEM
 support)
 
 Build parameter
 ---------------
-The building parameter can be found at the top section of the Makefile.
+The building parameter can be found in the Makefile.inc file.
 You can choose your appropriate compiler (CC), flags (CCFLAGS) and
 additional foMPI build parameter. At the moment foMPI supports the
 following parameter:
@@ -82,7 +80,7 @@ Using foMPI
 All MPI one-sided functions are prefixed with foMPI instead of MPI.
 Additional all constants like foMPI_LOCK_{SHARED,EXLCUSIVE}, the error
 codes, asserts (though not supported at the moment), flavor, memory
-model and MPI ops for the accumulate-derived communication functions
+model and MPI_Ops for the accumulate-derived communication functions
 need to be prefixed with foMPI. Below you find a complete list of
 all implemented constants.
 
@@ -128,7 +126,7 @@ functions except:
 * MPI_CXX_DOUBLE_COMPLEX
 * MPI_CXX_LONG_DOUBLE_COMPLEX
 
-The following combinations of MPI datatype and operation are
+The following combinations of MPI datatypes and MPI_Ops are
 hardware-supported:
 * MPI_DOUBLE/MPI_{BAND/BOR/BXOR}
 * MPI_INT64_T/MPI_{BAND/BOR/BXOR}
@@ -144,7 +142,7 @@ instead of the bigger integer(kind=MPI_ADDRESS_KIND)).
 
 On our test system, we experienced problems with MPI_Get_address, which
 gives different results for the same location if called from C and
-Fortran. Since our library is implemented in C, this is a problem if you
+Fortran. Since our library is implemented in C, this is an issue if you
 intend to use dynamic windows.
 We included a test_address subdirectory, which contains a small test
 program for this problem. If all three locations are the same, you are
@@ -156,6 +154,20 @@ Questions
 
 If you have additional questions, feel free to contact me under the
 following e-mail address: Robert Gerstenberger <gerro@illinois.edu>.
+
+
+Citation
+========
+
+Any published work which uses this software should include the 
+following citation:
+
+----------------------------------------------------------------------
+R. Gerstenberger, M. Besta and T. Hoefler: Enabling Highly-Scalable
+Remote Memory Access Programming with MPI-3 One Sided. In: Proceedings
+of the International Conference on High Performance Computing,
+Networking, Storage and Analysis (SC'13)
+----------------------------------------------------------------------
 
 
 Implemented function

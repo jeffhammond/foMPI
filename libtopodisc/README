@@ -1,5 +1,9 @@
 A simple library for topology discovery
 
+original version by William Gropp
+
+Makefile modified to remove autoconf dependency by Robert Gerstenberger.
+
 Building
 --------
 

@@ -1,3 +1,7 @@
+      ! Copyright (c) 2012 The Tru stees of University of Illinois. All rights reserved.
+      ! Use of this source code is governed by a BSD-style license that can be
+      ! found in the LICENSE file.
+      
       module fompi
 
       use mpi
@@ -83,37 +87,6 @@
 !        end subroutine foMPI_Win_create
 
         
-        subroutine foMPI_Win_allocate( size, disp_unit, info, comm, baseptr, win, ierror )
-
-        use mpi
-
-        integer(kind=MPI_ADDRESS_KIND), intent(in) :: size
-        integer, intent(in) :: disp_unit
-        integer, intent(in) :: info
-        integer, intent(in) :: comm
-        integer(kind=MPI_ADDRESS_KIND) :: baseptr ! removed intent, so Fortran accepts null()
-        integer, intent(out) :: win
-        integer, intent(out) :: ierror
-  
-        end subroutine foMPI_Win_allocate
-
-
-        subroutine foMPI_Win_allocate_cptr( size, disp_unit, info, comm, baseptr, win, ierror )
-
-        use, intrinsic :: iso_c_binding, only: c_ptr
-        use mpi
-
-        integer(kind=MPI_ADDRESS_KIND), intent(in) :: size
-        integer, intent(in) :: disp_unit
-        integer, intent(in) :: info
-        integer, intent(in) :: comm
-        type(c_ptr) :: baseptr ! removed intent, so Fortran accepts null()
-        integer, intent(out) :: win
-        integer, intent(out) :: ierror
-
-        end subroutine
-
-
         subroutine foMPI_Win_create_dynamic( info, comm, win, ierror )
 
         integer, intent(in) :: info
@@ -625,7 +598,37 @@
       end interface
 
       interface foMPI_Win_allocate
-        procedure foMPI_Win_allocate, foMPI_Win_allocate_cptr
+        !procedure foMPI_Win_allocate, foMPI_Win_allocate_cptr
+        subroutine foMPI_Win_allocate( size, disp_unit, info, comm, baseptr, win, ierror )
+
+        use mpi
+
+        integer(kind=MPI_ADDRESS_KIND), intent(in) :: size
+        integer, intent(in) :: disp_unit
+        integer, intent(in) :: info
+        integer, intent(in) :: comm
+        integer(kind=MPI_ADDRESS_KIND) :: baseptr ! removed intent, so Fortran accepts null()
+        integer, intent(out) :: win
+        integer, intent(out) :: ierror
+  
+        end subroutine foMPI_Win_allocate
+
+
+        subroutine foMPI_Win_allocate_cptr( size, disp_unit, info, comm, baseptr, win, ierror )
+
+        use, intrinsic :: iso_c_binding, only: c_ptr
+        use mpi
+
+        integer(kind=MPI_ADDRESS_KIND), intent(in) :: size
+        integer, intent(in) :: disp_unit
+        integer, intent(in) :: info
+        integer, intent(in) :: comm
+        type(c_ptr) :: baseptr ! removed intent, so Fortran accepts null()
+        integer, intent(out) :: win
+        integer, intent(out) :: ierror
+
+        end subroutine
+
       end interface foMPI_Win_allocate
 
       end module fompi

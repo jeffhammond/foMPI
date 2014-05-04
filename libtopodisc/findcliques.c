@@ -1,16 +1,9 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-#include "config.h"
 #include <mpi.h>
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
 #include <stdio.h>
-#ifdef HAVE_STRING_H
 #include <string.h>
-#endif
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
 #include "findcliques.h"
 
 #define MAX_CLIQUE_SIZE 128

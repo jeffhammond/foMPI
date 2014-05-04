@@ -1,3 +1,7 @@
+// Copyright (c) 2012 The Trustees of University of Illinois. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 #include <assert.h>
 #include <dmapp.h>
 #include <stdlib.h>
@@ -1343,13 +1347,13 @@ int foMPI_Get_accumulate(const void *origin_addr, int origin_count, MPI_Datatype
   if( ( origin_datatype == MPI_INT64_T) && (origin_datatype == target_datatype) && (origin_datatype == result_datatype) && ( win->create_flavor != foMPI_WIN_FLAVOR_DYNAMIC ) && (op == foMPI_SUM) ) {
 
     MPI_Aint i, nelements;
-    int64_t* acc_target_addr = win->win_array[target_rank].base + target_disp * win->win_array[target_rank].disp_unit;
+    int64_t* acc_target_addr = (int64_t*) ((char*) win->win_array[target_rank].base + target_disp * win->win_array[target_rank].disp_unit);
     dmapp_seg_desc_t* seg_ptr = &(win->win_array[target_rank].seg);
 
     nelements = target_count * win->win_array[target_rank].disp_unit / 8;
 
     for( i=0 ; i<nelements ; i++ ) {
-      status = dmapp_afadd_qw_nbi( (int64_t*)(result_addr+i), acc_target_addr+i, seg_ptr, target_pe, *(int64_t*)(origin_addr+i) );
+      status = dmapp_afadd_qw_nbi( (int64_t*)result_addr+i, acc_target_addr+i, seg_ptr, target_pe, *((int64_t*)origin_addr+i) );
       _check_status(status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
     }
     win->nbi_counter++; /* little hack, since we actually just need a flag to indicate that there are nbi operations in progress */

@@ -1,4 +1,3 @@
-
 // for now it's an MPI-only library
 #include <mpi.h>
 #include <unistd.h>
@@ -35,5 +34,3 @@ int TPD_Get_hier_levels(MPI_Comm *comms, int max_num, MPI_Comm comm) {
 
   return MPI_SUCCESS;
 }
-
-

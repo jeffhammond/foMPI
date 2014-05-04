@@ -1,42 +1,46 @@
-program fence
-implicit none
-include 'fompif.h'
+      ! Copyright (c) 2012 The Trustees of University of Illinois. All rights reserved.
+      ! Use of this source code is governed by a BSD-style license that can be
+      ! found in the LICENSE file.
 
-integer :: mpierr, x, win, numtasks, taskid
+      program fence
+      
+      implicit none
 
-integer(kind=MPI_ADDRESS_KIND) :: target_disp
-integer(kind=MPI_ADDRESS_KIND) :: win_size = 8
+      include 'fompif.h'
 
-call foMPI_Init (mpierr)
+      integer :: mpierr, x, win, numtasks, taskid
 
-call MPI_Comm_size (MPI_COMM_WORLD,numtasks,mpierr)
-call MPI_Comm_rank (MPI_COMM_WORLD,taskid,mpierr)
+      integer(kind=MPI_ADDRESS_KIND) :: target_disp
+      integer(kind=MPI_ADDRESS_KIND) :: win_size = 8
 
-x = 10
+      call foMPI_Init(mpierr)
 
-target_disp = 0
+      call MPI_Comm_size(MPI_COMM_WORLD, numtasks, mpierr)
+      call MPI_Comm_rank(MPI_COMM_WORLD, taskid, mpierr)
 
-if(taskid.eq.0) then
-  write(6,*) 'resolution of mpi_wtime', MPI_Wtick()
-endif
+      x = 10
+      target_disp = 0
 
-write (6,*) 'before', taskid, x 
+      if (taskid .eq. 0) then
+        write (6,*) 'resolution of mpi_wtime', MPI_Wtick()
+      endif
 
+      write (6,*) 'before', taskid, x 
 
-call foMPI_Win_create(x,win_size,8,MPI_INFO_NULL,MPI_COMM_WORLD,win,mpierr)
+      call foMPI_Win_create(x, win_size, 8, MPI_INFO_NULL, MPI_COMM_WORLD, win, mpierr)
 
-call foMPI_Win_fence( MPI_INFO_NULL, win, mpierr )
+      call foMPI_Win_fence(0, win, mpierr)
 
-if(taskid.eq.0) then
-  call foMPI_Accumulate(x, 1, MPI_INTEGER, 1, target_disp, 1, MPI_INTEGER, foMPI_SUM, win, mpierr)
-endif
+      if(taskid.eq.0) then
+        call foMPI_Accumulate(x, 1, MPI_INTEGER, 1, target_disp, 1, MPI_INTEGER, foMPI_SUM, win, mpierr)
+      endif
 
-call foMPI_Win_fence( MPI_INFO_NULL, win, mpierr )
+      call foMPI_Win_fence(0, win, mpierr)
 
-call foMPI_Win_free(win,mpierr)
+      call foMPI_Win_free(win, mpierr)
 
-write (6,*) 'after', taskid, x 
+      write (6,*) 'after', taskid, x 
 
-call foMPI_Finalize(mpierr)
+      call foMPI_Finalize(mpierr)
 
-end program fence
+      end program fence

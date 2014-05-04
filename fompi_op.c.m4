@@ -8,6 +8,10 @@ dnl * Copyright (c) 2006 The Technical University of Chemnitz. All
 dnl *                    rights reserved.
 dnl */
 dnl
+dnl gerro:
+dnl Code copied from libNBC by Torsten Hoefler.
+dnl Changes were applied.
+dnl
 dnl this m4 code generate all MPI intrinsic operations
 dnl every macro is prefixed with m4_ to retain clarity (this means that
 dnl everything prefixed with m4_ will be replaced by m4!)

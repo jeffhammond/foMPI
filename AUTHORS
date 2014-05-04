@@ -1,0 +1,16 @@
+AUTHORS
+-------
+
+The first version of foMPI was developed in 2012 at the National Centre
+for Supercomputing Applications, University of Illinois in
+Urbana-Champaign. Later work was done with the support of ETH Zurich.
+
+main author:
+Robert Gerstenberger <gerro@illinois.edu>
+
+other authors:
+Maciej Besta <maciej.besta@inf.ethz.ch>
+Torsten Hoefler <htor@inf.ethz.ch>
+
+We also like to thank Timo Schneider <timos@inf.ethz.ch> for his help
+during the early stages of the project.

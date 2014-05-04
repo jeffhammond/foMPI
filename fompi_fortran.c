@@ -1,3 +1,7 @@
+// Copyright (c) 2012 The Trustees of University of Illinois. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 #include <string.h>
 
 #include "fompi.h"
@@ -34,7 +38,7 @@ static inline int get_winidx() {
   if(Fortran_Windows == NULL) {
     winidx=0;
     Fortran_Windows = (foMPI_Win*)malloc(sizeof(foMPI_Win) * Fortran_win_sz);
-    for (i=0; i<Fortran_win_sz; ++i) {
+    for (i=Fortran_win_sz-1; i>0; i--) {
       insert_free_elem( i, &Fortran_free_win ); 
     }
   } else {
@@ -43,7 +47,7 @@ static inline int get_winidx() {
       winidx = Fortran_win_sz;
       Fortran_win_sz += 100;
       Fortran_Windows = realloc( Fortran_Windows, Fortran_win_sz * sizeof(foMPI_Win) );
-      for (i = winidx /* old Fortran_win_sz value */ ; i<Fortran_win_sz ; ++i) {
+      for (i = Fortran_win_sz-1; i>winidx /* old Fortran_win_sz value */; i--) {
         insert_free_elem( i, &Fortran_free_win ); 
       }
     }
@@ -60,7 +64,7 @@ static inline int get_reqidx() {
   if(Fortran_Requests == NULL) {
     reqidx = 0;
     Fortran_Requests = (foMPI_Request*)malloc(sizeof(foMPI_Request)*Fortran_req_sz);
-    for (i=0; i<Fortran_req_sz; ++i) {
+    for (i=Fortran_req_sz-1; i>0; i--) {
       insert_free_elem( i, &Fortran_free_req );
     }
   } else {
@@ -69,7 +73,7 @@ static inline int get_reqidx() {
       reqidx = Fortran_req_sz;
       Fortran_req_sz += 100;
       Fortran_Requests = realloc( Fortran_Requests, Fortran_req_sz * sizeof(foMPI_Request) );
-      for (i = reqidx /* old Fortran_req_sz value */; i<Fortran_req_sz; ++i) {
+      for (i = Fortran_req_sz-1; i>reqidx /* old Fortran_req_sz value */; i--) {
         insert_free_elem( i, &Fortran_free_req );
       }
     }
@@ -94,7 +98,7 @@ void F77_FUNC_(fompi_get_address,FOMPI_GET_ADDRESS)(void *location, MPI_Aint *ad
 
 void F77_FUNC_(fompi_win_create,FOMPI_WIN_CREATE)(void *base, MPI_Aint *size, int *disp_unit, int *info, int *comm, int *win, int *ierr);
 void F77_FUNC_(fompi_win_create,FOMPI_WIN_CREATE)(void *base, MPI_Aint *size, int *disp_unit, int *info, int *icomm, int *win, int *ierr) {
-	
+
   *win = get_winidx();
 
   MPI_Comm comm;
@@ -149,6 +153,7 @@ void F77_FUNC_(fompi_win_free,FOMPI_WIN_FREE)(int *win, int *ierr) {
   *ierr = foMPI_Win_free(&Fortran_Windows[*win]);
   // Fortran_Windows[*win] = foMPI_WIN_NULL; already done by foMPI_Win_free
 
+  insert_free_elem( *win, &Fortran_free_win );
   *win = -1; // constant fompi_win_null in fortran
 }
 
@@ -589,6 +594,7 @@ void F77_FUNC_(fompi_wait,FOMPI_WAIT)(int *request, int *status, int *ierr) {
 
     //Fortan_Requests[*request] = foMPI_REQUEST_NULL; already done by foMPI_Wait
 
+    insert_free_elem( *request, &Fortran_free_req );
     *request = -1; /* equivalent to fompi_request_null in fompif.h */
   }
 
@@ -613,7 +619,8 @@ void F77_FUNC_(fompi_test,FOMPI_TEST)(int *request, int *flag, int *status, int 
     status[4] = c_status.MPI_ERROR;
 
     //Fortan_Requests[*request] = foMPI_REQUEST_NULL; already done by foMPI_Test
-    
+
+    insert_free_elem( *request, &Fortran_free_req );    
     *request = -1; /* equivalent to fompi_request_null in fompif.h */
   }
 

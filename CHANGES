@@ -1,0 +1,8 @@
+0.2.1
+* removed autoconf dependency for libtopodisc to allow an easier built (proposal by Timo Schneider)
+* fixed problem with compiling the Fortran foMPI_Win_allocate interface with the Intel compiler
+* fixed problem with Fortran window and request book keeping
+* extended testing with Intel compiler
+
+0.2.0
+* added Fortran interface
