@@ -53,7 +53,9 @@ int foMPI_Win_allocate(MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm com
 
     //MPI_Abort( comm, -1 );
 #else
-    *(void **)baseptr = malloc( size );
+	void * memptr;
+	_foMPI_ALIGNED_ALLOC(&memptr, size)
+	*((void **)baseptr) = memptr;
     assert( *(void **)baseptr != NULL );
 #endif
     result = foMPI_Win_create(*(void **)baseptr, size, disp_unit, info, comm, win);

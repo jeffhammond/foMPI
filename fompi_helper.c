@@ -23,7 +23,7 @@ void foMPI_Set_window_mutex( dmapp_return_t* status, dmapp_pe_t target_pe, foMPI
 
   //  *status = dmapp_acswap_qw( &result, (void*) &(win_ptr->mutex), win_ptr_seg, target_pe, (int64_t) foMPI_MUTEX_NONE, (int64_t) win->commrank );
     *status = dmapp_acswap_qw( &result, (void*) &(win_ptr->mutex), win_ptr_seg, target_pe, (int64_t) foMPI_MUTEX_NONE, (int64_t) 0 );
-    _check_status(*status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
+    _check_dmapp_status(*status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
 
 			//printf("[%i] kurwa mac\n",win->commrank);
   } while (result != foMPI_MUTEX_NONE);
@@ -37,7 +37,7 @@ void foMPI_Release_window_mutex( dmapp_return_t* status, dmapp_pe_t target_pe, f
   /* TODO: nonblocking ? */
  // *status = dmapp_put( (void*) &(win_ptr->mutex), win_ptr_seg, target_pe, &result, 1, DMAPP_QW); 
     *status = dmapp_acswap_qw( &result, (void*) &(win_ptr->mutex), win_ptr_seg, target_pe, (int64_t) 0, (int64_t) foMPI_MUTEX_NONE );
-  _check_status(*status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
+  _check_dmapp_status(*status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
 }
 
 int get_free_elem( fortran_free_mem_t **list_head ) { /* as a side effect also removes the first element from the list */
@@ -53,7 +53,7 @@ int get_free_elem( fortran_free_mem_t **list_head ) { /* as a side effect also r
   *list_head = entry->next;
   index = entry->index;
 
-  free( entry );
+  _foMPI_FREE( entry );
 
   return index;
 }
@@ -73,7 +73,7 @@ xpmem_seg_desc_t foMPI_export_memory_xpmem(void *ptr, int len) {
   void *pagestart = (void*)(((unsigned long)ptr / getpagesize()) * getpagesize());
   ret.offset = (unsigned long) ptr - (unsigned long) pagestart;
   //FIXME might be one page too much
-  int szpages = ((unsigned long)(ret.offset + len) / getpagesize() + 1) * getpagesize();
+  size_t szpages = ((unsigned long)(ret.offset + len) / getpagesize() + 1) * getpagesize();
   //possible fix: if( ((unsigned long)(ret.offset + len) % getpagesize()) == 0) szpages--;
   ret.seg = xpmem_make(pagestart, szpages, XPMEM_PERMIT_MODE, (void *)0666);
   assert( ret.seg != -1 );
@@ -94,7 +94,7 @@ void* foMPI_map_memory_xpmem(xpmem_seg_desc_t rseg, int len, xpmem_apid_t* apid,
   *apid = xpmem_get(rseg.seg, XPMEM_RDWR, XPMEM_PERMIT_MODE, NULL);
   //assert( *apid != -1 );
   if ( *apid == -1 ) {
-    printf("%i: apid == -1\n", debug_pe);
+    printf("%i: apid == -1\n", glob_info.debug_pe);
   }
 
   *offset = rseg.offset;
@@ -192,7 +192,7 @@ int foMPI_onnode_rank_local_to_global( int lrank, foMPI_Win win ) {
 #ifdef PAPI
 #include <string.h>
 
-#include "papi.h"
+#include <papi.h>
 //! handles all the time measurement
 
 static int counter;
@@ -255,7 +255,7 @@ static void timing_print( int last ) {
 //! opens a file handle, to where the timing values are written
 static void timing_open_file() {
       
-  char filename[20] = "mpi3rma.out\0";
+  char filename[20] = "mpi3rma-ex.out\0";
   char line[256];
   int ier;
 
@@ -396,7 +396,7 @@ void timing_init() {
 
   init_papi();
 
-  if (debug_pe == 0) {
+  if (glob_info.debug_pe == 0) {
     timing_open_file();
   }
 
@@ -407,13 +407,13 @@ void timing_init() {
 }
 
 void timing_close() {
-  if (debug_pe == 0) {
+  if (glob_info.debug_pe == 0) {
     timing_print( 1 );
   }
 
   cleanup_papi();
 
-  if (debug_pe == 0) {
+  if (glob_info.debug_pe == 0) {
     timing_close_file();
   }
 }
@@ -431,7 +431,7 @@ void timing_record( int id ) {
 
   if ( id > -1  ) { 
     if ( ++counter > 1024 ) {
-      if (debug_pe == 0) {
+      if (glob_info.debug_pe == 0) {
         timing_print(0);
       }
       counter = 0;

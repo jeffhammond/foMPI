@@ -1,3 +1,7 @@
+0.2.2
+*added UGNI and XPMEM support for RMA notifications.
+*main calls introduced: foMPI_Put_notify, foMPI_Get_notify, foMPI_Notify_init
+
 0.2.1
 * removed autoconf dependency for libtopodisc to allow an easier built (proposal by Timo Schneider)
 * fixed problem with compiling the Fortran foMPI_Win_allocate interface with the Intel compiler

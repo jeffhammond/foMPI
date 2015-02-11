@@ -1,6 +1,6 @@
 include Makefile.inc
 
-FOMPIOPTS= -DXPMEM -DNDEBUG
+FOMPIOPTS= -DXPMEM -DNA -DNDEBUG
 
 LIBS=-Lmpitypes/install/lib -lmpitypes -ldmapp -Llibtopodisc -ltopodisc
 INC=-Impitypes/install/include -Ilibtopodisc
@@ -25,7 +25,13 @@ OBJS = \
 	fompi_win_name.o \
 	fompi_win_pscw.o \
 	fompi_win_rma.o \
-	module_fompi.o
+	module_fompi.o \
+	fompi_comm.o \
+	fompi_req.o \
+	fompi_notif.o \
+	fompi_seg.o \
+	fompi_notif_uq.o \
+	fompi_notif_xpmem.o  
 
 EXE = \
 	c_test \
@@ -33,10 +39,10 @@ EXE = \
 	fortran_test_f90
 
 # some general rules
-all: fompi.ar $(EXE)
+all: fompi-na.ar $(EXE)
 
 clean:
-	rm -f *.o fompi_op.c fompi.ar $(EXE)
+	rm -f *.o fompi_op.c fompi-na.ar $(EXE)
 
 recursive-clean: clean
 	make -C mpitypes clean
@@ -48,18 +54,18 @@ distclean: clean
 	make -C libtopodisc clean
 
 # libtopodisc.a is actual not a real dependency, but is here to ensure it is build
-fompi.ar: $(OBJS) libtopodisc/libtopodisc.a
-	ar -r fompi.ar $(OBJS)
-	ranlib fompi.ar
+fompi-na.ar: $(OBJS) libtopodisc/libtopodisc.a
+	ar -r fompi-na.ar $(OBJS)
+	ranlib fompi-na.ar
 
-c_test: c_test.o fompi.ar
-	${CC} ${CCFLAGS} ${LDFLAGS} -o $@ c_test.o fompi.ar ${LIBS}
+c_test: c_test.o fompi-na.ar
+	${CC} ${CCFLAGS} ${LDFLAGS} -o $@ c_test.o fompi-na.ar ${LIBS}
 
-fortran_test_f77: fortran_test_f77.o fompi.ar
-	${FC} ${FCFLAGS} ${LDFLAGS} -o $@ fortran_test_f77.o fompi.ar ${LIBS}
+fortran_test_f77: fortran_test_f77.o fompi-na.ar
+	${FC} ${FCFLAGS} ${LDFLAGS} -o $@ fortran_test_f77.o fompi-na.ar ${LIBS}
 
-fortran_test_f90: fortran_test_f90.o fompi.ar
-	${FC} ${FCFLAGS} ${LDFLAGS} -o $@ fortran_test_f90.o fompi.ar ${LIBS}
+fortran_test_f90: fortran_test_f90.o fompi-na.ar
+	${FC} ${FCFLAGS} ${LDFLAGS} -o $@ fortran_test_f90.o fompi-na.ar ${LIBS}
 
 fompi_fortran.o: fompi.h
 
@@ -92,6 +98,18 @@ fompi_win_name.o: fompi_win_name.c fompi.h
 fompi_win_pscw.o: fompi_win_pscw.c fompi.h
 
 fompi_win_rma.o: fompi_win_rma.c fompi.h mpitypes/install/include/mpitypes.h mpitypes/install/lib/libmpitypes.a
+
+fompi_comm.o: fompi_comm.c fompi.h
+
+fompi_req.o: fompi_req.c fompi.h
+
+fompi_notif.o: fompi_notif.c fompi.h
+
+fompi_notif_uq.o: fompi_notif_uq.c  fompi_notif_uq.h fompi.h
+
+fompi_notif_xpmem.o: fompi_notif_xpmem.c fompi.h
+
+fompi_seg.o: fompi_seg.c fompi.h
 
 fompi.h: fompi_internal.h
 

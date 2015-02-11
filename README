@@ -67,6 +67,7 @@ The building parameter can be found in the Makefile.inc file.
 You can choose your appropriate compiler (CC), flags (CCFLAGS) and
 additional foMPI build parameter. At the moment foMPI supports the
 following parameter:
+* -DNA: enables the Notified Access extension
 * -DXPMEM: enables XPMEM support for intra-node communication
 * -DNDEBUG: disables additional error checking
 

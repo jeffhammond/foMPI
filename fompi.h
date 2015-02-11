@@ -5,6 +5,7 @@
 #include "mpi.h"
 #include "fompi_internal.h"
 
+
 /* constants for win_create_flavor */
 #define foMPI_WIN_FLAVOR_CREATE     0
 #define foMPI_WIN_FLAVOR_ALLOCATE   1
@@ -61,9 +62,14 @@
 #define foMPI_WIN_CREATE_FLAVOR 3
 #define foMPI_WIN_MODEL         4
 
+#define foMPI_TAG_UB 	( 32767 )
+#define foMPI_ANY_SOURCE -1
+#define foMPI_ANY_TAG -2
+
 #define foMPI_REQUEST_NULL NULL
 #define foMPI_UNDEFINED 17383
 #define foMPI_WIN_NULL NULL
+#define foMPI_COMM_NULL NULL
 
 #ifdef __cplusplus
  extern "C" {
@@ -127,11 +133,34 @@ int foMPI_Win_set_attr(foMPI_Win win, int win_keyval, void *attribute_val);
 int foMPI_Win_get_attr(foMPI_Win win, int win_keyval, void *attribute_val, int *flag);
 int foMPI_Win_delete_attr(foMPI_Win win, int win_keyval);
 
+#ifdef UGNI
+/*MPI-extended (with Notifications)*/
+int foMPI_Notify_init(foMPI_Win win, int src_rank, int tag, int count, foMPI_Request *request);
+int foMPI_Put_notify(const void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
+		int target_rank, MPI_Aint target_disp, int target_count, MPI_Datatype target_datatype,
+		foMPI_Win win, int tag);
+int foMPI_Get_notify(void *origin_addr, int origin_count, MPI_Datatype origin_datatype, int target_rank,
+		MPI_Aint target_disp, int target_count, MPI_Datatype target_datatype, foMPI_Win win, int tag);
+int foMPI_Rput_notify(const void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
+		int target_rank, MPI_Aint target_disp, int target_count, MPI_Datatype target_datatype,
+		foMPI_Win win, foMPI_Request *request, int tag);
+int foMPI_Rget_notify(void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
+		int target_rank, MPI_Aint target_disp, int target_count, MPI_Datatype target_datatype,
+		foMPI_Win win, foMPI_Request *request, int tag);
+#endif
+
 /* TODO: remove this */
 int foMPI_Init( int *argc, char ***argv );
 int foMPI_Finalize();
+int foMPI_Alloc_mem(MPI_Aint size, MPI_Info info, void *baseptr);
+
 int foMPI_Wait(foMPI_Request *request, MPI_Status *status);
 int foMPI_Test(foMPI_Request *request, int *flag, MPI_Status *status);
+int foMPI_Waitany(int count, foMPI_Request array_of_requests[], int *index, MPI_Status *status);
+int foMPI_Testany(int count, foMPI_Request array_of_requests[], int *index, int *flag, MPI_Status *status);
+int foMPI_Request_free(foMPI_Request *request);
+int foMPI_Start(foMPI_Request *request);
+
 int foMPI_Type_free( MPI_Datatype *datatype);
 
 #ifdef __cplusplus

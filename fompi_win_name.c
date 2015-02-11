@@ -11,18 +11,18 @@ int foMPI_Win_set_name(foMPI_Win win, const char *win_name) {
   size_t size;
 
   if (win->name != NULL ) {
-    free( win->name );
+	  _foMPI_FREE( win->name );
   }
 
   size = strlen( win_name );
 
   if( size > MPI_MAX_OBJECT_NAME ) {
-    win->name = malloc( (MPI_MAX_OBJECT_NAME+1) * sizeof(char) );
+    win->name = _foMPI_ALLOC( (MPI_MAX_OBJECT_NAME+1) * sizeof(char) );
     strncpy( &(win->name[0]), win_name, MPI_MAX_OBJECT_NAME );
     win->name[MPI_MAX_OBJECT_NAME] = '\0';
     return foMPI_NAME_ABBREVIATED;
   } else {
-    win->name = malloc( (size+1) * sizeof(char) );
+    win->name = _foMPI_ALLOC( (size+1) * sizeof(char) );
     strcpy( &(win->name[0]), win_name );
   }
 

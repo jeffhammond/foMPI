@@ -24,22 +24,21 @@ int main( int argc, char *argv[] ) {
 
   MPI_Comm_size( MPI_COMM_WORLD, &commsize );
   MPI_Comm_rank( MPI_COMM_WORLD, &commrank );
-
-  base[0] = 1;
-  base[1] = 0;
-
-  foMPI_Win_fence( MPI_INFO_NULL, win );
-
-  foMPI_Accumulate( &base[0], 1, MPI_UINT64_T, 0, 1, 1, MPI_UINT64_T, foMPI_SUM, win );
+  foMPI_Request req;
+  int tag =0;
+  foMPI_Notify_init(win, foMPI_ANY_SOURCE, tag, commsize - 1, &req);
   
   foMPI_Win_fence( MPI_INFO_NULL, win );
 
+  if(commrank!=0){
+    foMPI_Put_notify(base,0,MPI_DOUBLE, 0, 0 ,0, MPI_DOUBLE, win, tag);
+  } else {
+    foMPI_Start(&req);
+    foMPI_Wait(&req, MPI_STATUS_IGNORE);
+  }
+
   if ( commrank == 0 ) {
-    if ( base[1] == commsize ) {
-      printf("Reached expected sum of commsize\nThank you for using foMPI.\n");
-    } else {
-      printf("Accumulated %lu instead of %i.\n", base[1], commsize);
-    }
+      printf("Motification Received. Thank you for using foMPI-NA.\n");
   }
 
   foMPI_Win_free( &win );

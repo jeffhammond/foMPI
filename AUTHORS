@@ -1,5 +1,10 @@
 AUTHORS
 -------
+foMPI-NA-0.2.2 was developed in 2014 at the SPCL Lab - ETH Zurich. It’s based on foMPI v0.2.1.
+
+main author:
+Roberto Belli <roberto.belli@inf.ethz.ch>
+
 
 The first version of foMPI was developed in 2012 at the National Centre
 for Supercomputing Applications, University of Illinois in
@@ -14,3 +19,4 @@ Torsten Hoefler <htor@inf.ethz.ch>
 
 We also like to thank Timo Schneider <timos@inf.ethz.ch> for his help
 during the early stages of the project.
+

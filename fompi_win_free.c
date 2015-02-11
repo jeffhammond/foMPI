@@ -8,7 +8,6 @@
 
 int foMPI_Win_free(foMPI_Win *win) {
 
-  dmapp_return_t status;
   dmapp_pe_t pe = (*win)->commrank;
   int i;
   foMPI_Win_dynamic_element_t* current;
@@ -25,18 +24,16 @@ int foMPI_Win_free(foMPI_Win *win) {
 
         while( (*win)->win_dynamic_mem_regions != NULL ) {
         
-          status = dmapp_mem_unregister(&((*win)->win_dynamic_mem_regions->seg));
-          _check_status(status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
+        _foMPI_mem_unregister(&((*win)->win_dynamic_mem_regions->seg),*win);
 
-          status = dmapp_mem_unregister(&((*win)->win_dynamic_mem_regions_seg));
-          _check_status(status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
+		_foMPI_mem_unregister(&((*win)->win_dynamic_mem_regions_seg), *win);
 
           previous = (*win)->win_dynamic_mem_regions;
 
           (*win)->win_dynamic_mem_regions_seg = (*win)->win_dynamic_mem_regions->next_seg; /* TODO: just use pointer? */
           (*win)->win_dynamic_mem_regions = (*win)->win_dynamic_mem_regions->next;
     
-          free( previous );
+          _foMPI_FREE( previous );
         }
 
       } else {
@@ -45,21 +42,19 @@ int foMPI_Win_free(foMPI_Win *win) {
           while( current->next != NULL ) {
             previous = current;
             current = current->next;
-            free( previous );
+            _foMPI_FREE( previous );
           }
-          free( current );
+          _foMPI_FREE( current );
         }
       }
     }
 
-    status = dmapp_mem_unregister(&((*win)->dynamic_list[pe].win_ptr_seg));
-    _check_status(status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
+    _foMPI_mem_unregister(&((*win)->dynamic_list[pe].win_ptr_seg), *win);
 
-    status = dmapp_mem_unregister(&((*win)->dynamic_list[pe].pscw_matching_exposure_seg));
-    _check_status(status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
+    _foMPI_mem_unregister(&((*win)->dynamic_list[pe].pscw_matching_exposure_seg), *win);
 
-    free((*win)->dynamic_list[pe].pscw_matching_exposure);
-    free((*win)->dynamic_list);
+    _foMPI_FREE((*win)->dynamic_list[pe].pscw_matching_exposure);
+    _foMPI_FREE((*win)->dynamic_list);
 
   } else {
 
@@ -72,13 +67,14 @@ int foMPI_Win_free(foMPI_Win *win) {
       }
       foMPI_unmap_memory_xpmem( &((*win)->xpmem_array[i].win_ptr_apid), (*win)->xpmem_array[i].win_ptr, (*win)->xpmem_array[i].win_ptr_offset );
       foMPI_unmap_memory_xpmem( &((*win)->xpmem_array[i].pscw_matching_exposure_apid), (*win)->xpmem_array[i].pscw_matching_exposure, (*win)->xpmem_array[i].pscw_matching_exposure_offset );
+      foMPI_unmap_memory_xpmem( &((*win)->xpmem_array[i].notif_queue_apid), (*win)->xpmem_array[i].notif_queue, (*win)->xpmem_array[i].notif_queue_offset );
+      foMPI_unmap_memory_xpmem( &((*win)->xpmem_array[i].notif_queue_state_apid), (*win)->xpmem_array[i].notif_queue_state, (*win)->xpmem_array[i].notif_queue_state_offset );
     }
-    free( (*win)->xpmem_array );
+    _foMPI_FREE( (*win)->xpmem_array );
 #endif
 
     if ( (*win)->win_array[pe].base != NULL ) {
-      status = dmapp_mem_unregister(&((*win)->win_array[pe].seg));
-      _check_status(status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
+    	_foMPI_mem_unregister(&((*win)->win_array[pe].seg),*win);
 #ifdef XPMEM
       if ((*win)->xpmem_segdesc.base.seg != -1 ) {
         //printf("%i: unexport base\n", debug_pe);
@@ -88,34 +84,40 @@ int foMPI_Win_free(foMPI_Win *win) {
     }
 
     if ( (*win)->create_flavor == foMPI_WIN_FLAVOR_ALLOCATE ) {
-      free( (*win)->win_array[pe].base );
+    	_foMPI_FREE( (*win)->win_array[pe].base );
     }
 
-    status = dmapp_mem_unregister(&((*win)->win_array[pe].win_ptr_seg));
-    _check_status(status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
+    _foMPI_mem_unregister(&((*win)->win_array[pe].win_ptr_seg),*win);
+
 #ifdef XPMEM
     foMPI_unexport_memory_xpmem( (*win)->xpmem_segdesc.win_ptr );
 #endif
 
-    status = dmapp_mem_unregister(&((*win)->win_array[pe].pscw_matching_exposure_seg));
-    _check_status(status, DMAPP_RC_SUCCESS,  (char*) __FILE__, __LINE__);
+    _foMPI_mem_unregister(&((*win)->win_array[pe].pscw_matching_exposure_seg), *win);
+
 #ifdef XPMEM
     foMPI_unexport_memory_xpmem( (*win)->xpmem_segdesc.pscw_matching_exposure );
+    foMPI_unexport_memory_xpmem( (*win)->xpmem_segdesc.notif_queue );
+    foMPI_unexport_memory_xpmem( (*win)->xpmem_segdesc.notif_queue_state );
 #endif
-
-    free((*win)->win_array[pe].pscw_matching_exposure);
-    free((*win)->win_array);
+    xpmem_notif_free_queue(*win);
+    _foMPI_FREE((*win)->win_array[pe].pscw_matching_exposure);
+    _foMPI_FREE((*win)->win_array);
 
 #ifdef XPMEM
     if ( (*win)->onnode_lower_bound == -1 ) {
-      free( (*win)->onnode_ranks );
+    	_foMPI_FREE( (*win)->onnode_ranks );
     }
     MPI_Group_free( &((*win)->win_onnode_group) );
     MPI_Comm_free( &((*win)->win_onnode_comm) );
 #endif
   }
 
-  free((*win)->pscw_matching_access);
+  _foMPI_FREE((*win)->pscw_matching_access);
+#ifdef UGNI
+  _fompi_notif_uq_finalize(&((*win)->destination_cq_discarded));
+  _foMPI_TRACE_LOG(3, "fompi_oset    Finalize \n");
+#endif
   /* free remainder of exclusive locks list
    * at this point, if the programm is MPI consistent, there shouldn't be a element in the list */
   if( (*win)->excl_locks != NULL ) {
@@ -125,22 +127,22 @@ int foMPI_Win_free(foMPI_Win *win) {
     current = (*win)->excl_locks->next;
     
     while( current != NULL ) {
-      free( previous );
+    	_foMPI_FREE( previous );
       previous = current;
       current = current->next;
     }
 
-    free( previous ); /* free last element */
+    _foMPI_FREE( previous ); /* free last element */
 
     (*win)->excl_locks = NULL;
   }
   
-  free((*win)->group_ranks);
+  _foMPI_FREE((*win)->group_ranks);
   if ( (*win)->name != NULL ) {
-    free( (*win)->name );
+	  _foMPI_FREE( (*win)->name );
   }
   MPI_Barrier( (*win)->comm );
-  free(*win);
+  _foMPI_FREE(*win);
 
   *win = foMPI_WIN_NULL;
 

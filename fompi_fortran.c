@@ -9,13 +9,6 @@
 // this should really be dome by autoconf but I don't have the time right now
 #define F77_FUNC_(name,NAME) name ## _
 
-foMPI_Win *Fortran_Windows;
-int Fortran_win_sz;
-fortran_free_mem_t *Fortran_free_win;
-
-foMPI_Request *Fortran_Requests;
-int Fortran_req_sz;
-fortran_free_mem_t *Fortran_free_req;
 
 /* some helper functions */
 
@@ -23,7 +16,7 @@ static inline void insert_free_elem( int index, fortran_free_mem_t **list_head )
 
   fortran_free_mem_t *entry;
 
-  entry = malloc( sizeof(fortran_free_mem_t) );
+  entry = _foMPI_ALLOC( sizeof(fortran_free_mem_t) );
   entry->index = index;
   entry->next = *list_head;
   *list_head = entry;
@@ -35,20 +28,20 @@ static inline int get_winidx() {
   // if we don't have a window table yet ... allocate it
   int winidx;
   int i;
-  if(Fortran_Windows == NULL) {
+  if(glob_info.Fortran_Windows == NULL) {
     winidx=0;
-    Fortran_Windows = (foMPI_Win*)malloc(sizeof(foMPI_Win) * Fortran_win_sz);
-    for (i=Fortran_win_sz-1; i>0; i--) {
-      insert_free_elem( i, &Fortran_free_win ); 
+    glob_info.Fortran_Windows = (foMPI_Win*)_foMPI_ALLOC(sizeof(foMPI_Win) * glob_info.Fortran_win_sz);
+    for (i=glob_info.Fortran_win_sz-1; i>0; i--) {
+      insert_free_elem( i, &(glob_info.Fortran_free_win) );
     }
   } else {
-    winidx = get_free_elem( &Fortran_free_win );
+    winidx = get_free_elem( &(glob_info.Fortran_free_win) );
     if(winidx == -1) { 
-      winidx = Fortran_win_sz;
-      Fortran_win_sz += 100;
-      Fortran_Windows = realloc( Fortran_Windows, Fortran_win_sz * sizeof(foMPI_Win) );
-      for (i = Fortran_win_sz-1; i>winidx /* old Fortran_win_sz value */; i--) {
-        insert_free_elem( i, &Fortran_free_win ); 
+      winidx = glob_info.Fortran_win_sz;
+      glob_info.Fortran_win_sz += 100;
+      glob_info.Fortran_Windows = realloc( glob_info.Fortran_Windows, glob_info.Fortran_win_sz * sizeof(foMPI_Win) );
+      for (i = glob_info.Fortran_win_sz-1; i>winidx /* old Fortran_win_sz value */; i--) {
+        insert_free_elem( i, &(glob_info.Fortran_free_win) );
       }
     }
   }
@@ -61,20 +54,20 @@ static inline int get_reqidx() {
   // if we don't have a request table yet ... allocate it
   int reqidx;
   int i;
-  if(Fortran_Requests == NULL) {
+  if(glob_info.Fortran_Requests == NULL) {
     reqidx = 0;
-    Fortran_Requests = (foMPI_Request*)malloc(sizeof(foMPI_Request)*Fortran_req_sz);
-    for (i=Fortran_req_sz-1; i>0; i--) {
-      insert_free_elem( i, &Fortran_free_req );
+    glob_info.Fortran_Requests = (foMPI_Request*)_foMPI_ALLOC(sizeof(foMPI_Request)*glob_info.Fortran_req_sz);
+    for (i=glob_info.Fortran_req_sz-1; i>0; i--) {
+      insert_free_elem( i, &(glob_info.Fortran_free_req) );
     }
   } else {
-    reqidx = get_free_elem( &Fortran_free_req );
+    reqidx = get_free_elem( &(glob_info.Fortran_free_req) );
     if(reqidx == -1) {
-      reqidx = Fortran_req_sz;
-      Fortran_req_sz += 100;
-      Fortran_Requests = realloc( Fortran_Requests, Fortran_req_sz * sizeof(foMPI_Request) );
-      for (i = Fortran_req_sz-1; i>reqidx /* old Fortran_req_sz value */; i--) {
-        insert_free_elem( i, &Fortran_free_req );
+      reqidx = glob_info.Fortran_req_sz;
+      glob_info.Fortran_req_sz += 100;
+      glob_info.Fortran_Requests = realloc( glob_info.Fortran_Requests, glob_info.Fortran_req_sz * sizeof(foMPI_Request) );
+      for (i = glob_info.Fortran_req_sz-1; i>reqidx /* old Fortran_req_sz value */; i--) {
+        insert_free_elem( i, &(glob_info.Fortran_free_req) );
       }
     }
   } 
@@ -106,7 +99,7 @@ void F77_FUNC_(fompi_win_create,FOMPI_WIN_CREATE)(void *base, MPI_Aint *size, in
   MPI_Info c_info = MPI_Info_f2c( *info );
 
   // this is also very suboptimal
-  *ierr = foMPI_Win_create(base, *size, *disp_unit, c_info, comm, &Fortran_Windows[*win]);
+  *ierr = foMPI_Win_create(base, *size, *disp_unit, c_info, comm, &glob_info.Fortran_Windows[*win]);
 }
 
 void F77_FUNC_(fompi_win_allocate,FOMPI_WIN_ALLOCATE)(MPI_Aint *size, int *disp_unit, int *info, int *comm, MPI_Aint *baseptr, int *win, int *ierr);
@@ -118,7 +111,7 @@ void F77_FUNC_(fompi_win_allocate,FOMPI_WIN_ALLOCATE)(MPI_Aint *size, int *disp_
   MPI_Info c_info = MPI_Info_f2c( *info );
   MPI_Comm c_comm = MPI_Comm_f2c( *comm );
 
-  *ierr = foMPI_Win_allocate( *size, *disp_unit, c_info, c_comm, &ptr, &Fortran_Windows[*win]);
+  *ierr = foMPI_Win_allocate( *size, *disp_unit, c_info, c_comm, &ptr, &(glob_info.Fortran_Windows[*win]));
 
   *baseptr = (MPI_Aint) ptr;
 }
@@ -131,7 +124,7 @@ void F77_FUNC_(fompi_win_allocate_cptr,FOMPI_WIN_ALLOCATE_CPTR)(MPI_Aint *size, 
   MPI_Info c_info = MPI_Info_f2c( *info );
   MPI_Comm c_comm = MPI_Comm_f2c( *comm );
 
-  *ierr = foMPI_Win_allocate( *size, *disp_unit, c_info, c_comm, baseptr, &Fortran_Windows[*win]);
+  *ierr = foMPI_Win_allocate( *size, *disp_unit, c_info, c_comm, baseptr, &(glob_info.Fortran_Windows[*win]));
 }
 
 void F77_FUNC_(fompi_win_create_dynamic,FOMPI_WIN_CREATE_DYNAMIC)(int *info, int *comm, int *win, int *ierr);
@@ -144,16 +137,16 @@ void F77_FUNC_(fompi_win_create_dynamic,FOMPI_WIN_CREATE_DYNAMIC)(int *info, int
   MPI_Info c_info = MPI_Info_f2c( *info );
 
   // this is also very suboptimal
-  *ierr = foMPI_Win_create_dynamic(c_info, comm, &Fortran_Windows[*win]);
+  *ierr = foMPI_Win_create_dynamic(c_info, comm, &(glob_info.Fortran_Windows[*win]));
 }
 
 void F77_FUNC_(fompi_win_free,FOMPI_WIN_FREE)(int *win, int *ierr);
 void F77_FUNC_(fompi_win_free,FOMPI_WIN_FREE)(int *win, int *ierr) {
 
-  *ierr = foMPI_Win_free(&Fortran_Windows[*win]);
+  *ierr = foMPI_Win_free(&glob_info.Fortran_Windows[*win]);
   // Fortran_Windows[*win] = foMPI_WIN_NULL; already done by foMPI_Win_free
 
-  insert_free_elem( *win, &Fortran_free_win );
+  insert_free_elem( *win, &(glob_info.Fortran_free_win) );
   *win = -1; // constant fompi_win_null in fortran
 }
 
@@ -161,14 +154,14 @@ void F77_FUNC_(fompi_win_free,FOMPI_WIN_FREE)(int *win, int *ierr) {
 void F77_FUNC_(fompi_win_attach,FOMPI_WIN_ATTACH)(int *win, void *base, MPI_Aint *size, int *ierr);
 void F77_FUNC_(fompi_win_attach,FOMPI_WIN_ATTACH)(int *win, void *base, MPI_Aint *size, int *ierr) {
 
-  *ierr = foMPI_Win_attach( Fortran_Windows[*win], base, *size );
+  *ierr = foMPI_Win_attach( glob_info.Fortran_Windows[*win], base, *size );
 
 }
 
 void F77_FUNC_(fompi_win_detach,FOMPI_WIN_DETACH)(int *win, void *base, int *ierr);
 void F77_FUNC_(fompi_win_detach,FOMPI_WIN_DETACH)(int *win, void *base, int *ierr) {
 
-  *ierr = foMPI_Win_detach( Fortran_Windows[*win], base );
+  *ierr = foMPI_Win_detach( glob_info.Fortran_Windows[*win], base );
 
 }
 
@@ -179,7 +172,7 @@ void F77_FUNC_(fompi_win_detach,FOMPI_WIN_DETACH)(int *win, void *base, int *ier
 void F77_FUNC_(fompi_win_fence,FOMPI_WIN_FENCE)(int *assert, int *win, int *ierr);
 void F77_FUNC_(fompi_win_fence,FOMPI_WIN_FENCE)(int *assert, int *win, int *ierr) {
  
-  *ierr = foMPI_Win_fence(*assert, Fortran_Windows[*win]);
+  *ierr = foMPI_Win_fence(*assert, glob_info.Fortran_Windows[*win]);
  
 }
 
@@ -193,14 +186,14 @@ void F77_FUNC_(fompi_win_start,FOMPI_WIN_START)(int *group, int *assert, int *wi
 
   MPI_Group c_group = MPI_Group_f2c( *group );  
 
-  *ierr = foMPI_Win_start( c_group, *assert, Fortran_Windows[*win] );
+  *ierr = foMPI_Win_start( c_group, *assert, glob_info.Fortran_Windows[*win] );
 
 }
 
 void F77_FUNC_(fompi_win_complete,FOMPI_WIN_COMPLETE)(int *win, int *ierr);
 void F77_FUNC_(fompi_win_complete,FOMPI_WIN_COMPLETE)(int *win, int *ierr) {
 
-  *ierr = foMPI_Win_complete( Fortran_Windows[*win] );
+  *ierr = foMPI_Win_complete( glob_info.Fortran_Windows[*win] );
 
 }
 
@@ -209,21 +202,21 @@ void F77_FUNC_(fompi_win_post,FOMPI_WIN_POST)(int* group, int *assert, int *win,
 
   MPI_Group c_group = MPI_Group_f2c( *group );
 
-  *ierr = foMPI_Win_post( c_group, *assert, Fortran_Windows[*win] );
+  *ierr = foMPI_Win_post( c_group, *assert, glob_info.Fortran_Windows[*win] );
 
 }
 
 void F77_FUNC_(fompi_win_wait,FOMPI_WIN_WAIT)(int *win, int *ierr);
 void F77_FUNC_(fompi_win_wait,FOMPI_WIN_WAIT)(int *win, int *ierr) {
 
-  *ierr = foMPI_Win_wait( Fortran_Windows[*win] );
+  *ierr = foMPI_Win_wait( glob_info.Fortran_Windows[*win] );
 
 }
 
 void F77_FUNC_(fompi_win_test,FOMPI_WIN_TEST)(int *win, int *flag, int *ierr);
 void F77_FUNC_(fompi_win_test,FOMPI_WIN_TEST)(int *win, int *flag, int *ierr) {
 
-  *ierr = foMPI_Win_test( Fortran_Windows[*win], flag );
+  *ierr = foMPI_Win_test( glob_info.Fortran_Windows[*win], flag );
 
 }
 
@@ -234,28 +227,28 @@ void F77_FUNC_(fompi_win_test,FOMPI_WIN_TEST)(int *win, int *flag, int *ierr) {
 void F77_FUNC_(fompi_win_lock,FOMPI_WIN_LOCK)(int *type, int *rank, int *assert, int *win, int *ierr);
 void F77_FUNC_(fompi_win_lock,FOMPI_WIN_LOCK)(int *type, int *rank, int *assert, int *win, int *ierr) {
  
-  *ierr = foMPI_Win_lock(*type, *rank, *assert, Fortran_Windows[*win]);
+  *ierr = foMPI_Win_lock(*type, *rank, *assert, glob_info.Fortran_Windows[*win]);
  
 }
 
 void F77_FUNC_(fompi_win_unlock,FOMPI_WIN_UNLOCK)(int *rank, int *win, int *ierr);
 void F77_FUNC_(fompi_win_unlock,FOMPI_WIN_UNLOCK)(int *rank, int *win, int *ierr) {
  
-  *ierr = foMPI_Win_unlock(*rank, Fortran_Windows[*win]);
+  *ierr = foMPI_Win_unlock(*rank, glob_info.Fortran_Windows[*win]);
  
 }
 
 void F77_FUNC_(fompi_win_lock_all,FOMPI_WIN_LOCK_ALL)(int *assert, int *win, int *ierr);
 void F77_FUNC_(fompi_win_lock_all,FOMPI_WIN_LOCK_ALL)(int *assert, int *win, int *ierr) {
   
-  *ierr = foMPI_Win_lock_all( *assert, Fortran_Windows[*win] );
+  *ierr = foMPI_Win_lock_all( *assert, glob_info.Fortran_Windows[*win] );
 
 }
 
 void F77_FUNC_(fompi_win_unlock_all,FOMPI_WIN_UNLOCK_ALL)(int *win, int *ierr);
 void F77_FUNC_(fompi_win_unlock_all,FOMPI_WIN_UNLOCK_ALL)(int *win, int *ierr) {
 
-  *ierr = foMPI_Win_unlock_all( Fortran_Windows[*win] );
+  *ierr = foMPI_Win_unlock_all( glob_info.Fortran_Windows[*win] );
 
 }
 
@@ -263,35 +256,35 @@ void F77_FUNC_(fompi_win_unlock_all,FOMPI_WIN_UNLOCK_ALL)(int *win, int *ierr) {
 void F77_FUNC_(fompi_win_flush,FOMPI_WIN_FLUSH)( int *rank, int *win, int *ierr );
 void F77_FUNC_(fompi_win_flush,FOMPI_WIN_FLUSH)( int *rank, int *win, int *ierr ) {
 
-  *ierr = foMPI_Win_flush( *rank, Fortran_Windows[*win] );
+  *ierr = foMPI_Win_flush( *rank, glob_info.Fortran_Windows[*win] );
 
 }
 
 void F77_FUNC_(fompi_win_flush_all,FOMPI_WIN_FLUSH_ALL)( int *win, int *ierr );
 void F77_FUNC_(fompi_win_flush_all,FOMPI_WIN_FLUSH_ALL)( int *win, int *ierr ) {
 
-  *ierr = foMPI_Win_flush_all( Fortran_Windows[*win] );
+  *ierr = foMPI_Win_flush_all( glob_info.Fortran_Windows[*win] );
 
 }
 
 void F77_FUNC_(fompi_win_flush_local,FOMPI_WIN_FLUSH_LOCAL)( int *rank, int *win, int *ierr );
 void F77_FUNC_(fompi_win_flush_local,FOMPI_WIN_FLUSH_LOCAL)( int *rank, int *win, int *ierr ) {
 
-  *ierr = foMPI_Win_flush_local( *rank, Fortran_Windows[*win] );
+  *ierr = foMPI_Win_flush_local( *rank, glob_info.Fortran_Windows[*win] );
 
 }
 
 void F77_FUNC_(fompi_win_flush_local_all,FOMPI_WIN_FLUSH_LOCAL_ALL)( int *win, int *ierr );
 void F77_FUNC_(fompi_win_flush_local_all,FOMPI_WIN_FLUSH_LOCAL_ALL)( int *win, int *ierr ) {
 
-  *ierr = foMPI_Win_flush_local_all( Fortran_Windows[*win] );
+  *ierr = foMPI_Win_flush_local_all( glob_info.Fortran_Windows[*win] );
 
 }
 
 void F77_FUNC_(fompi_win_sync,FOMPI_WIN_SYNC)( int *win, int *ierr );
 void F77_FUNC_(fompi_win_sync,FOMPI_WIN_SYNC)( int *win, int *ierr ) {
 
-  *ierr = foMPI_Win_sync( Fortran_Windows[*win] );
+  *ierr = foMPI_Win_sync( glob_info.Fortran_Windows[*win] );
 
 }
 
@@ -306,7 +299,7 @@ void F77_FUNC_(fompi_put,FOMPI_PUT)(void *origin_addr, int *origin_count, int *o
   otype = MPI_Type_f2c(*origin_datatype);
   ttype = MPI_Type_f2c(*target_datatype);
 
-  *ierr = foMPI_Put(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, Fortran_Windows[*win]);
+  *ierr = foMPI_Put(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, glob_info.Fortran_Windows[*win]);
 
 }
 
@@ -317,7 +310,7 @@ void F77_FUNC_(fompi_get,FOMPI_GET)(void *origin_addr, int *origin_count, int *o
   otype = MPI_Type_f2c(*origin_datatype);
   ttype = MPI_Type_f2c(*target_datatype);
 
-  *ierr = foMPI_Get(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, Fortran_Windows[*win]);
+  *ierr = foMPI_Get(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, glob_info.Fortran_Windows[*win]);
 
 }
 
@@ -332,9 +325,9 @@ void F77_FUNC_(fompi_accumulate,FOMPI_ACCUMULATE)(void *origin_addr, int *origin
   foMPI_Op mop;
   mop = *op;//MPI_Op_f2c(*op); not for now, since we use foMPI prefix operators
 
-  *ierr = foMPI_Accumulate(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, mop, Fortran_Windows[*win]);
+  *ierr = foMPI_Accumulate(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, mop, glob_info.Fortran_Windows[*win]);
 
-  foMPI_Win_flush(*target_rank, Fortran_Windows[*win]); /* TODO: Why is this here? */
+  foMPI_Win_flush(*target_rank, glob_info.Fortran_Windows[*win]); /* TODO: Why is this here? */
 
 }
 
@@ -350,7 +343,7 @@ void F77_FUNC_(fompi_get_accumulate,FOMPI_GET_ACCUMULATE)(void *origin_addr, int
   foMPI_Op mop;
   mop = *op;//MPI_Op_f2c(*op); not for now, since we use foMPI prefix operators
 
-  *ierr = foMPI_Get_accumulate(origin_addr, *origin_count, otype, result_addr, *result_count, rtype, *target_rank, *target_disp, *target_count, ttype, mop, Fortran_Windows[*win]);
+  *ierr = foMPI_Get_accumulate(origin_addr, *origin_count, otype, result_addr, *result_count, rtype, *target_rank, *target_disp, *target_count, ttype, mop, glob_info.Fortran_Windows[*win]);
 
 }
 
@@ -361,7 +354,7 @@ void F77_FUNC_(fompi_compare_and_swap,FOMPI_COMPARE_AND_SWAP)(void *origin_addr,
   MPI_Datatype dtype;
   dtype = MPI_Type_f2c(*datatype);
 
-  *ierr = foMPI_Compare_and_swap(origin_addr, compare_addr, result_addr, dtype, *target_rank, *target_disp, Fortran_Windows[*win]);
+  *ierr = foMPI_Compare_and_swap(origin_addr, compare_addr, result_addr, dtype, *target_rank, *target_disp, glob_info.Fortran_Windows[*win]);
 
 }
 
@@ -373,7 +366,7 @@ void F77_FUNC_(fompi_fetch_and_op,FOMPI_FETCH_AND_OP)(void *origin_addr, void *r
   foMPI_Op mop;
   mop = *op;//MPI_Op_f2c(*op); not for now, since we use foMPI prefix operators
 
-  *ierr = foMPI_Fetch_and_op(origin_addr, result_addr, dtype, *target_rank, *target_disp, mop, Fortran_Windows[*win]);
+  *ierr = foMPI_Fetch_and_op(origin_addr, result_addr, dtype, *target_rank, *target_disp, mop, glob_info.Fortran_Windows[*win]);
 
 }
 
@@ -390,7 +383,7 @@ void F77_FUNC_(fompi_rput,FOMPI_RPUT)(void *origin_addr, int *origin_count, int 
 
   *request = get_reqidx();
 
-  *ierr = foMPI_Rput(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, Fortran_Windows[*win], &Fortran_Requests[*request]);
+  *ierr = foMPI_Rput(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, glob_info.Fortran_Windows[*win], &glob_info.Fortran_Requests[*request]);
 
 }
 
@@ -403,7 +396,7 @@ void F77_FUNC_(fompi_rget,FOMPI_RGET)(void *origin_addr, int *origin_count, int 
 
   *request = get_reqidx();
 
-  *ierr = foMPI_Rget(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, Fortran_Windows[*win], &Fortran_Requests[*request]);
+  *ierr = foMPI_Rget(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, glob_info.Fortran_Windows[*win], &glob_info.Fortran_Requests[*request]);
 
 }
 
@@ -420,7 +413,7 @@ void F77_FUNC_(fompi_raccumulate,FOMPI_RACCUMULATE)(void *origin_addr, int *orig
 
   *request = get_reqidx();
 
-  *ierr = foMPI_Raccumulate(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, mop, Fortran_Windows[*win], &Fortran_Requests[*request]);
+  *ierr = foMPI_Raccumulate(origin_addr, *origin_count, otype, *target_rank, *target_disp, *target_count, ttype, mop, glob_info.Fortran_Windows[*win], &glob_info.Fortran_Requests[*request]);
 
 }
 
@@ -438,7 +431,7 @@ void F77_FUNC_(fompi_rget_accumulate,FOMPI_RGET_ACCUMULATE)(void *origin_addr, i
 
   *request = get_reqidx();
   
-  *ierr = foMPI_Rget_accumulate(origin_addr, *origin_count, otype, result_addr, *result_count, rtype, *target_rank, *target_disp, *target_count, ttype, mop, Fortran_Windows[*win], &Fortran_Requests[*request]);
+  *ierr = foMPI_Rget_accumulate(origin_addr, *origin_count, otype, result_addr, *result_count, rtype, *target_rank, *target_disp, *target_count, ttype, mop, glob_info.Fortran_Windows[*win], &glob_info.Fortran_Requests[*request]);
 
 }
 
@@ -451,7 +444,7 @@ void F77_FUNC_(fompi_win_get_group, FOMPI_WIN_GET_GROUP)( int *win, int *group, 
 
   MPI_Group c_group;
 
-  *ierr = foMPI_Win_get_group( Fortran_Windows[*win], &c_group );
+  *ierr = foMPI_Win_get_group( glob_info.Fortran_Windows[*win], &c_group );
 
   *group = MPI_Group_c2f( c_group );
 
@@ -462,7 +455,7 @@ void F77_FUNC_(fompi_win_get_group, FOMPI_WIN_GET_GROUP)( int *win, int *group, 
 void F77_FUNC_(fompi_win_set_name,FOMPI_WIN_SET_NAME)(int *win, char *win_name, int *ierr, int len);
 void F77_FUNC_(fompi_win_set_name,FOMPI_WIN_SET_NAME)(int *win, char *iwin_name, int *ierr, int len) {
 
-  char* c_win_name = malloc( (len+1) * sizeof(char) );
+  char* c_win_name = _foMPI_ALLOC( (len+1) * sizeof(char) );
   memcpy( c_win_name, iwin_name, len );
   c_win_name[len] = '\0';
 
@@ -476,18 +469,18 @@ void F77_FUNC_(fompi_win_set_name,FOMPI_WIN_SET_NAME)(int *win, char *iwin_name,
     }
   }
 
-  *ierr = foMPI_Win_set_name( Fortran_Windows[*win], c_win_name );
+  *ierr = foMPI_Win_set_name( glob_info.Fortran_Windows[*win], c_win_name );
 
-  free( c_win_name );
+  _foMPI_FREE( c_win_name );
 
 }
 
 void F77_FUNC_(fompi_win_get_name,FOMPI_WIN_GET_NAME)(int *win, char *win_name, int *resultlen, int *ierr, int len);
 void F77_FUNC_(fompi_win_get_name,FOMPI_WIN_GET_NAME)(int *win, char *iwin_name, int *resultlen, int *ierr, int len) {
 
-  char* c_win_name = malloc( (len+1) * sizeof(char) );
+  char* c_win_name = _foMPI_ALLOC( (len+1) * sizeof(char) );
 
-  *ierr = foMPI_Win_get_name( Fortran_Windows[*win], c_win_name, resultlen );
+  *ierr = foMPI_Win_get_name( glob_info.Fortran_Windows[*win], c_win_name, resultlen );
 
   int minimum;
   if (*resultlen > len) {
@@ -503,7 +496,7 @@ void F77_FUNC_(fompi_win_get_name,FOMPI_WIN_GET_NAME)(int *win, char *iwin_name,
     iwin_name[i] = ' ';
   }
 
-  free( c_win_name );
+  _foMPI_FREE( c_win_name );
 
 }
 
@@ -526,7 +519,7 @@ void F77_FUNC_(fompi_win_free_keyval,FOMPI_WIN_FREE_KEYVAL)(int *win_keyval, int
 void F77_FUNC_(fompi_win_set_attr,FOMPI_WIN_SET_ATTR)(int* win, int *win_keyval, MPI_Aint *attribute_val, int *ierr);
 void F77_FUNC_(fompi_win_set_attr,FOMPI_WIN_SET_ATTR)(int* win, int *win_keyval, MPI_Aint *attribute_val, int *ierr) {
 
-  *ierr = foMPI_Win_set_attr( Fortran_Windows[*win], *win_keyval, (void*) *attribute_val );
+  *ierr = foMPI_Win_set_attr( glob_info.Fortran_Windows[*win], *win_keyval, (void*) *attribute_val );
 
 }
 
@@ -538,14 +531,14 @@ void F77_FUNC_(fompi_win_get_attr,FOMPI_WIN_GET_ATTR)(int *win, int *win_keyval,
 
   switch (*win_keyval) {
     case foMPI_WIN_BASE:
-      *ierr = foMPI_Win_get_attr( Fortran_Windows[*win], *win_keyval, &addr, flag );
+      *ierr = foMPI_Win_get_attr( glob_info.Fortran_Windows[*win], *win_keyval, &addr, flag );
       *attribute_val = (MPI_Aint) addr;
       break;
     case foMPI_WIN_SIZE:
-      *ierr = foMPI_Win_get_attr( Fortran_Windows[*win], *win_keyval, attribute_val, flag );
+      *ierr = foMPI_Win_get_attr( glob_info.Fortran_Windows[*win], *win_keyval, attribute_val, flag );
       break;
     default:
-      *ierr = foMPI_Win_get_attr( Fortran_Windows[*win], *win_keyval, &int_attribute, flag );
+      *ierr = foMPI_Win_get_attr( glob_info.Fortran_Windows[*win], *win_keyval, &int_attribute, flag );
       *attribute_val = int_attribute;
       break;
   }
@@ -555,7 +548,7 @@ void F77_FUNC_(fompi_win_get_attr,FOMPI_WIN_GET_ATTR)(int *win, int *win_keyval,
 void F77_FUNC_(fompi_win_delete_attr,FOMPI_WIN_DELETE_ATTR)(int *win, int *win_keyval, int *ierr);
 void F77_FUNC_(fompi_win_delete_attr,FOMPI_WIN_DELETE_ATTR)(int *win, int *win_keyval, int *ierr) {
 
-  *ierr = foMPI_Win_delete_attr( Fortran_Windows[*win], *win_keyval );
+  *ierr = foMPI_Win_delete_attr( glob_info.Fortran_Windows[*win], *win_keyval );
 
 }
 
@@ -582,7 +575,7 @@ void F77_FUNC_(fompi_wait,FOMPI_WAIT)(int *request, int *status, int *ierr) {
 
   MPI_Status c_status;
 
-  *ierr = foMPI_Wait( &Fortran_Requests[*request], &c_status );
+  *ierr = foMPI_Wait( &(glob_info.Fortran_Requests[*request]), &c_status );
 
   if (*ierr == MPI_SUCCESS) {
 
@@ -594,7 +587,7 @@ void F77_FUNC_(fompi_wait,FOMPI_WAIT)(int *request, int *status, int *ierr) {
 
     //Fortan_Requests[*request] = foMPI_REQUEST_NULL; already done by foMPI_Wait
 
-    insert_free_elem( *request, &Fortran_free_req );
+    insert_free_elem( *request, &glob_info.Fortran_free_req );
     *request = -1; /* equivalent to fompi_request_null in fompif.h */
   }
 
@@ -608,7 +601,7 @@ void F77_FUNC_(fompi_test,FOMPI_TEST)(int *request, int *flag, int *status, int 
 
   *flag = 0;
   
-  *ierr = foMPI_Test( &Fortran_Requests[*request], flag, &c_status );
+  *ierr = foMPI_Test( &(glob_info.Fortran_Requests[*request]), flag, &c_status );
 
   if( (*ierr == MPI_SUCCESS) && ( *flag != 0 ) ) {
 
@@ -620,7 +613,7 @@ void F77_FUNC_(fompi_test,FOMPI_TEST)(int *request, int *flag, int *status, int 
 
     //Fortan_Requests[*request] = foMPI_REQUEST_NULL; already done by foMPI_Test
 
-    insert_free_elem( *request, &Fortran_free_req );    
+    insert_free_elem( *request, &glob_info.Fortran_free_req );    
     *request = -1; /* equivalent to fompi_request_null in fompif.h */
   }
 
