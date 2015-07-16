@@ -56,6 +56,10 @@ int foMPI_Init(int *argc, char ***argv) {
 	rma_args.max_concurrency = 1;
 	rma_args.PI_ordering = DMAPP_PI_ORDERING_RELAXED;
 
+    /* Jeff: These appear to have been added later... */
+    rma_args.queue_depth = DMAPP_QUEUE_DEFAULT_DEPTH;
+    rma_args.queue_nelems = DMAPP_QUEUE_DEFAULT_NELEMS;
+
 	MPI_Initialized(&flag);
 	putenv("_DMAPP_DLA_PURE_DMAPP_JOB=0");
 	if (flag == 0) {
